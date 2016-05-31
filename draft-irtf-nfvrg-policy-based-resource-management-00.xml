@@ -1,0 +1,1247 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+<!ENTITY I-D.irtf-nfvrg-nfv-policy-arch SYSTEM "http://xml2rfc.ietf.org/public/rfc/bibxml3/reference.I-D.draft-norival-nfvrg-nfv-policy-arch-04.xml">
+]>
+
+<?xml-stylesheet type="text/xsl" href="rfc2629.xslt" ?> <!-- used by XSLT processors -->
+<!-- OPTIONS, known as processing instructions (PIs) go here. -->
+<!-- For a complete list and description of PIs,
+     please see http://xml.resource.org/authoring/README.html. -->
+<!-- Below are generally applicable PIs that most I-Ds might want to use. -->
+<?rfc strict="yes" ?> <!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC): -->
+<?rfc toc="yes"?> <!-- generate a ToC -->
+<?rfc tocdepth="3"?> <!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references: -->
+<?rfc symrefs="yes"?> <!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?> <!-- sort the reference entries alphabetically -->
+<!-- control vertical white space: 
+     (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?> <!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?> <!-- keep one blank line between list items -->
+<!-- end of popular PIs -->
+<rfc  category="info" docName="draft-irtf-nfvrg-policy-based-resource-management-00" ipr="trust200902">
+  <front>
+    <title abbrev="Policy-based RM">Policy-Based Resource Management</title>
+    <author fullname="Robert Szabo" initials="R" surname="Szabo" role="editor">
+	<organization>Ericsson</organization>
+	<address>
+		<postal>
+		      <street>Konyves Kaman krt. 11</street>
+		      <city>Budapest</city>
+		      <region>EMEA</region>
+		      <code>1097</code>
+		      <country>Hungary</country>
+		</postal>
+		<phone>+36703135738</phone>
+<!-- <facsimile/> -->
+		<email>robert.szabo@ericsson.com</email>
+<!-- <uri/> -->
+	</address>
+    </author>
+    <author fullname="Norival Figueira" initials="N" surname="Figueira" role="editor">
+	<organization>Brocade</organization>
+	<address>
+		<email>nfigueir@Brocade.com</email>
+<!-- <uri/> -->
+	</address>
+    </author>
+    <date year="2016" />
+      <area>irtf</area>
+      <workgroup>nfvrg</workgroup>
+      <keyword>policy</keyword>
+      <keyword>resource management</keyword>
+      <keyword>NFV</keyword>
+      <keyword>VNF</keyword>
+    <abstract>
+      <t>abstract to be defined      </t>
+    </abstract>
+  </front>
+  <middle>
+
+<section title="Introduction">
+
+<t>
+NFV "Point of Presence" (PoP) will be likely constrained in compute and storage capacity. Since practically all NFV PoPs are foreseen to be distributed, inter-datacenter network capacity is also a constraint.  Additionally, energy is also a constraint, both as a general concern for NFV operators, and in particular for specific-purpose NFV PoPs such as those in mobile base stations. This draft focuses on the optimized resource management and workload distribution based on policy to address such contraints.</t>
+
+<section anchor="Scope" title="Scope">
+
+<!-- 
+<t> More specifically,
+<list style="symbols">
+  <t>policy actors,</t>
+  <t>architectural considerations,</t>
+  <t>policy interactions during the resource management work-flow.</t>
+</list>
+</t> 
+-->
+
+<t>
+For the first version of the draft, only the research group currently adopted drafts
+(i.e., <xref target="I-D.norival-nfvrg-nfv-policy-arch"/>, <xref
+target="I-D.irtf-nfvrg-resource-management-service-chain"/>, and
+<xref target="I-D.unify-nfvrg-recursive-programming"/>) are
+considered as inputs to this document. The initial goal is
+to summarize these inputs and to assess gaps and open
+questions.
+</t>
+
+</section>
+
+</section>
+
+<section title="Terminology">
+
+<t>
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in
+this document are to be interpreted as described in
+<xref target="RFC2119"/>.
+</t>
+
+</section>
+
+<section anchor="sec:definitions" title="Definitions">
+<t>
+This document uses the terms of <xref target="ETSI-NFV-TERM"/>:
+  <list style='symbols'>
+    <t>MANO - Management and Orchestration: Describes the architecture
+    framework to manage NFVI and orchestrate the allocation of
+    resources needed by the NSs and VNFs. </t>
+    <t>NF - Network Functions: A functional building block within a
+    network infrastructure, which has well-defined external interfaces
+    and a well-defined functional behavior. </t>
+    <t>NFV Framework: The totality of all entities, reference points,
+    information models and other constructs defined by the
+    specifications published by the ETSI ISG NFV.</t>
+    <t>NFVI - NFV Infrastructure: The NFV-Infrastructure is the
+    totality of all hardware and software components which build up
+    the environment in which VNFs are deployed.</t>
+    <t>NFVI-PoP: A location or point of presence that hosts NFV infrastructure</t>
+    <t>NFVO - Network Function Virtualization Orchestrator: The NFV
+    Orchestrator is in charge of the network wide orchestration and
+    management of NFV (infrastructure and software) resources, and
+    realizing NFV service topology on the NFVI. </t>
+    <t>NS - Network service: A composition of network functions and
+    defined by its functional and behavioural specification.</t>
+    <t>VNF - Virtualized Network Function: An implementation of an
+    NF that can be deployed on a Network Function Virtualization
+    Infrastructure (NFVI).</t>
+    <t>VNF-FG - VNF Forwarding Graph: A NF forwarding graph where at
+    least one node is a VNF.</t>
+  </list>
+</t>
+
+<t>Additionally, we use the following terms:
+<list style='symbols'>
+    <t>NFP - Network Forwarding Path: The sequence of
+    hardware/software switching ports and operations in the NFV
+    network infrastructure as configured by management and
+    orchestration that implements a logical VNF forwarding graph
+    "link" connecting VNF "node" logical interfaces.</t>
+
+    <t>Virtual Link: A set of connection points along with the
+    connectivity relationship between them and any associated target
+    performance metrics (e.g. bandwidth, latency, QoS). The Virtual
+    Link can interconnect two or more entities (VNF components, VNFs,
+    or PNFs).</t>
+
+    <t>Scaling: Ability to dynamically extend/reduce resources granted
+    to the Virtual Network function (VNF) as needed.</t>
+
+    <t>NFVIaaS: NFV infrastructure as a service to other SP
+    customers.</t>
+    <t>SDN: Software Defined Networking.</t>
+    <t>BSS: Business Support Systems</t>
+    <t>OSS: Operation Support Systems</t>
+    <t>DC: Data Center</t>
+    <t>VM: Virtual machine</t>
+</list></t>      			
+</section>
+
+<!-- <section anchor="Actors" title="Use-cases and Policy Actors">
+  </section> -->
+
+<section anchor="Requirements" title="Requirements">
+<t>tbd</t>
+</section>
+
+<section anchor="sec:architecture" title="Architecture Considerations">
+
+<section anchor="sec:MANO" title="MANO Architecture">
+<t>According to the ETSI MANO framework
+<xref target="ETSI-NFV-MANO"/>, an NFVO is split into two functions
+(see <xref target="fig:NFV-functional-split"/>):
+  <list style="symbols">
+    <t> The orchestration of NFVI resources across multiple VIMs,
+    fulfilling the Resource Orchestration functions. The NFVO uses the
+    Resource Orchestration functionality to provide services that
+    support accessing NFVI resources in an abstracted manner
+    independently of any VIMs, as well as governance of VNF instances
+    sharing resources of the NFVI infrastructure</t>
+    <t>The lifecycle management of Network Services, fulfilling the
+    network Service Orchestration functions.</t>
+  </list>
+</t>
+
+<t>Similarly, a VIM is split into two functions (see <xref target="fig:NFV-functional-split"/>):
+  <list style="symbols">
+    <t> Orchestrating the allocation/upgrade/release/reclamation of
+      NFVI resources (including the optimization of such resources
+      usage), and</t>
+    <t> managing the association of the virtualised
+      resources to the physical compute, storage, networking resources.</t>
+  </list>
+</t>
+
+<figure anchor="fig:NFV-functional-split" align="center" 
+	title="Functional decomposition of the NFVO and the VIM
+	according to the ETSI MANO"> 
+  <artwork align="center"><![CDATA[ 
+                       +-------------------+
+                       |NVFO               |
+                       |  +--------------+ |
+                       |  |NFVO:         | |
+                       |  |Service       | |
+                       |  |Lifecycle     | |
+                       |  |Management    | |
+                       |  +------+-------+ |
+                       |         |         |
+                       |  +------+-------+ |
+                       |  |NFVO:         | |
+                       |  |Resource      | |
+                       |  |Orchestration | |
+                       |  +--+---+----+--+ |
+                       +-----|---|----|----+
+                            /    |     \
+                 /---------/     |      \------------\
+                /                |                    \
+ +-------------|-----+  +--------|----------+  +------|------------+
+ |VIM          |     |  |VIM     |          |  |VIM   |            |
+ |  +----------+---+ |  |  +-----+--------+ |  |  +---+----------+ |
+ |  |VIM:          | |  |  |VIM:          | |  |  |VIM:          | |
+ |  |Orchestration | |  |  |Orchestration | |  |  |Orchestration | |
+ |  |&             | |  |  |&             | |  |  |&             | |
+ |  |Optimization  | |  |  |Optimization  | |  |  |Optimization  | |
+ |  +------+-------+ |  |  +------+-------+ |  |  +------+-------+ |
+ |         |         |  |         |         |  |         |         |
+ |  +------+-------+ |  |  +------+-------+ |  |  +------+-------+ |
+ |  |VIM:          | |  |  |VIM:          | |  |  |VIM:          | |
+ |  |Virtualized 2 | |  |  |Virtualized 2 | |  |  |Virtualized 2 | |
+ |  |Pys mapping   | |  |  |Pys mapping   | |  |  |Pys mapping   | |
+ |  +--------------+ |  |  +--------------+ |  |  +--------------+ |
+ +-------------------+  +-------------------+  +-------------------+
+]]></artwork>
+</figure>
+
+<t>In <xref target="fig:MANO-policies"/> we show various policies
+mapped to the MANO architecture (see <xref target="sec:policies_mano"/> for
+more dicussions on policies in the MANO architeture):
+<list style="symbols">
+  <t>Tenant Policies: Tenant policies exist whenever a domain offers a
+  virtualization service to more than one consumer. User tenants may
+  exists at the northbound of the NFVO. Additionally, if a VIM exposes
+  resource services to more than one NFVO, then each NFVO may appear
+  as a tenant (virtualization consumer) at the northbound of the
+  VIM.</t>
+
+  <t>Wherever virtualization services are produced or consumed
+  corresponding export and import policies may exist.  Export policies
+  govern the details of resources, capabilities, costs, etc. exposed
+  to consumers. In turn, consumers (tenants) apply import policies to
+  filter, tweak, annotate resources and services received from their
+  southbound domains.  An entity may at the same time consume and
+  produce virtualization services hence apply both import and export
+  policies.</t>
+
+  <t>Operational policies support the business logic realized by the
+  domain's ownership. They are often associated with Operations or
+  Business Support Systems (OSS or BSS) and frequently determine
+  operational objectives like energy optimization, utilization
+  targets, offered services, charging models, etc. Operational policies
+  may be split according to different control plane layers, for
+  example, i) lifecycle and ii) resource management layers within the
+  NFVO. </t>
+
+</list></t>
+
+<figure anchor="fig:MANO-policies" align="center" 
+	title="Policies within the MANO framework"> 
+  <artwork align="center"><![CDATA[ 
+                         T1 T2...Tn
+                          |  |   |
+                    +-----|--|---|------+
+                    |NVFO |  |   |      |            Tenant
+                    |  +--+--+---+----+ |         <- Policies
+                    |  |NFVO:         | |
+     Operational    |  |Service       | |
+     Policies->     |  |Lifecycle     | |
+                    |  |Management    | |
+                    |  +------+-------+ |
+                    |         |         |
+                    |  +------+-------+ |
+                    |  |NFVO:         | |
+     Operational    |  |Resource      | |
+     Policies->     |  |Orchestration | |       ^
+                    |  +--+---+----+--+ |       |Import
+ to                 +-----|---|---------+       |Policies
+ other NFVO              /    \
+     \          +-------+      \
+      \        /                \      to NFVO  ^
++------\------|-----+            \       /      |Export
+|VIM    \     |     |             \     /       |Policies
+|  +-----+----+---+ |     +--------|----|-----+
+|  |VIM:          | |     |VIM     |    |     |     Tenant
+|  |Orchestration | |     |  +-----+----+---+ |  <- Policies
+|  |&             | |     |  |VIM:          | |
+|  |Optimization  | | .   |  |Orchestration | |
+|  +------+-------+ |  .  |  |&             | |  <- Operational
+|         |         |     |  |Optimization  | |     Policies
+|  +------+-------+ |     |  +------+-------+ |
+|  |VIM:          | |     |         |         |
+|  |Virtualized 2 | |     |  +------+-------+ |
+|  |Pys mapping   | |     |  |VIM:          | |  <- Operational
+|  +--------------+ |     |  |Virtualized 2 | |     Policies
++-------------------+     |  |Pys mapping   | |
+                          |  +--------------+ |
+                          +-------------------+
+]]></artwork>
+</figure>
+
+</section>
+
+<section anchor="sec:policies_mano" title="Policies in the MANO Architecture">
+
+<t>
+The current industry work in the area of policy for NFV is mostly considered in
+the framework of general cloud services, and typically focused on
+individual subsystems and addressing very specific use cases or
+environments. For example, <xref target='ETSI-NFV-WHITE-PAPER' />
+addresses network subsystem policy for network virtualization, <xref
+target='ODL-GB-POLICY' /> and <xref target='ODL-NIC-PROJECT' /> are
+open source projects in the area of network policy as part of the
+OpenDaylight <xref target='ODL-SDN-CONTROLLER' /> software defined
+networking (SDN) controller framework, <xref target='RFC3060' />
+specifies an information model for network policy, <xref
+target='VM-HOSTING-NET-CLUSTER' /> focuses on placement and migration
+policies for distributed virtual computing, <xref
+target='OPENSTACK-CONGRESS' /> is an open source project proposal in
+OpenStack <xref target='OPENSTACK' /> to address policy for general
+cloud environments.
+</t>
+
+<t>
+A policy framework applicable to the MANO architure must consider
+NFV services from the perspective of overall
+orchestration requirements for services involving multiple subsystems (e.g.,
+<xref target="fig:NFV-functional-split"/> and  <xref target="fig:MANO-policies"/>).
+</t>
+
+<t>
+While this document discusses policy atributes as applicable to the
+MANO architecture, the general topic of policy has already been intensively studied
+and documented on numerous publications over the past 10 to 15 years
+(see  <xref target='RFC3060' />, <xref target='POLICY-FRAMEWORK-WG' />,
+<xref target='RFC3670' />, <xref target='RFC3198' />, and
+<xref target='CERI-DATALOG' /> to name a few).
+This document's purpose is to discuss and document a policy
+framework applicable to the MANO architecture using known policy concepts
+and theories to address the unique requirements of NFV services including
+multiple PoPs and networks forming hierarchical domain architectures
+<xref target='SDN-MULTI-DOMAIN' />.
+</t>
+
+<t>
+With the above goals, this document analyses
+"global versus local policies" (<xref target="sec:global_local"/>),
+a "hierarchical policy framework" (<xref target="sec:hierarc_framework"/>)
+to address the demanding and growing requirements of NFV environments,
+a "policy pub/sub bus in the hierarchical framework"
+(<xref target="sec:pub_sub_bus"/>),
+"policy intent versus subsystem actions" (<xref target="sec:policy_intent"/>),
+"static versus dynamic versus autonomic policies" (<xref target="sec:static_dynamic"/>),
+"policy conflict detection and resolution" (<xref target="sec:conflicts_resolution"/>),
+and "soft versus hard policy constraints" (<xref target="sec:soft_hard"/>),
+which can be relevant to resource management in service chains
+<xref target='RESOURCE-MGMT-SERVICE-CHAIN' />.
+</t>
+
+</section>
+
+<section anchor="sec:global_local" title="Global vs Local Policies">
+
+<t>
+Some policies may be subsystem specific in scope, while others may have broader scope and interact with multiple subsystems. For example, a policy constraining certain customer types (or specific customers) to only use certain server types for VNF or Virtual Machine (VM) deployment would be within the scope of the compute subsystem. A policy dictating that a given customer type (or specific customers) must be given "platinum treatment" could have different implications on different subsystems. As shown in <xref target='fig_example_translations_policy_actions' />, that "platinum treatment" could be translated to servers of a given performance specification in a compute subsystem and storage of a given performance specification in a storage subsystem.
+</t>
+
+<t>
+Policies with broader scope, or global policies, would be defined outside affected subsystems and enforced by a global policy engine (<xref target='fig_global_local_policy_engines' />), while subsystem-specific policies or local policies, would be defined and enforced at the local policy engines of the respective subsystems.
+</t>
+
+<t>
+Examples of sub-system policies can include thresholds for utilization of sub-system resources, affinity/anti-affinity constraints with regard to utilization or mapping of sub-system resources for specific tasks, network services, or workloads, or monitoring constraints regarding under-utilization or over- utilization of sub-system resources.
+</t>
+
+<figure anchor='fig_global_local_policy_engines'
+	title='Global versus Local Policy Engines'>
+<artwork>
++----------------------------------------------------------------+
+|        +----------------------------------------------+        |
+|        |             Global Policy Engine             |        |
+|        +----------------------------------------------+        |
+|                                                                |
+|        +----------------------------------------------+        |
+|        |                Global Policies               |        |
+|        +----------------------------------------------+        |
++----------------------------------------------------------------+
+       ^                ^                ^                ^
+       |                |                |                |
+       V                V                V                V
++-------------+  +-------------+  +-------------+  +-------------+
+|Compute      |  |Network      |  |Storage      |  |Whatever     |
+|Subsystem    |  |Subsystem    |  |Subsystem    |  |Subsystem    |
+|             |  |             |  |             |  |             |
+|Local Policy |  |Local Policy |  |Local Policy |  |Local Policy |
+|Engine       |  |Engine       |  |Engine       |  |Engine       |
+|             |  |             |  |             |  |             |
+|Local        |  |Local        |  |Local        |  |Local        |
+|Policies:    |  |Policies     |  |Policies     |  |Policies     |
+| P0, P1,     |  | P0, P1,     |  | P0, P1,     |  | P0, P1,     |
+|             |  |             |  |             |  |             |
++-------------+  +-------------+  +-------------+  +-------------+
+</artwork>
+</figure>
+
+</section>
+
+<section anchor="sec:hierarc_framework" title="Hierarchical Policy Framework">
+
+<t>
+So far, we have referenced compute, network, and storage as subsystems
+examples. However, the following subsystems may also support policy
+engines and subsystem specific policies:
+<list style='symbols'>
+  <t>SDN Controllers, e.g., OpenDaylight <xref
+  target='ODL-SDN-CONTROLLER' />.</t>
+  <t>OpenStack <xref target='OPENSTACK' /> components such as,
+  Neutron, Cinder, Nova, and etc.</t>
+  <t>Directories, e.g., LDAP, ActiveDirectory, and etc.</t>
+  <t>
+    Applications in general, e.g., standalone or on top of OpenDaylight or OpenStack.
+  </t>
+  <t>
+    Physical and virtual network elements, e.g., routers, firewalls, application delivery controllers (ADCs), and etc.
+  </t>
+  <t>
+    Energy subsystems, e.g., OpenStack Neat <xref target='OPENSTACK-NEAT' />.
+  </t>
+</list>
+</t>
+
+<t>
+Therefore, a policy framework may involve a multitude of subsystems.  Subsystems may include other lower level subsystems, e.g., Neutron <xref target='OPENSTACK-NEUTRON' /> would be a lower level subsystem in the OpenStack subsystem. In other words, the policy framework is hierarchical in nature, where the policy engine of a subsystem may be viewed as a higher level policy engine by lower level subsystems. In fact, the global policy engine in <xref target='fig_global_local_policy_engines' /> could be the policy engine of a Data Center subsystem and multiple Data Center subsystems could be grouped in a region containing a region global policy engine. In addition, one could define regions inside regions, hierarchically, as shown in <xref target='fig_hierachical_policy_framework' />.
+</t>
+
+<t>
+Metro and wide-area network (WAN) used to interconnect data centers would also be independent subsystems with their own policy engines.
+</t>
+
+<figure anchor='fig_hierachical_policy_framework'
+	title='A Hierarchical Policy Framework'>
+<artwork align="center"><![CDATA[
+   To higher level domain
+            ^
+Region 1    |
+Domain      V
++-------------------+        +-------------------+
+| +---------------+ |        | +---------------+ |
+| |Region 1 Global| |<------>| |WAN 1 Global   | |
+| |Policy Engine  | |        | |Policy Engine  | |
+| +---------------+ |        | +---------------+ |
+|                   |        |                   |
+| +---------------+ |        | +---------------+ |
+| |Whatever       | |        | |Whatever       | |
+| |Subsystems     | |        | |Subsystems     | |
+| |               | |        | |               | |
+| |Local Policy   | |        | |Local Policy   | |
+| |Engines        | |        | |Engines        | |
+| +---------------+ |        | +---------------+ |
++-------------------+        +-------------------+
+              ^   ^
+              |   |
+              |   +-------------------------+
+              |                             |
+DC 1 Domain   V              DC N Domain    V
++-------------------+        +-------------------+
+| +---------------+ |        | +---------------+ |
+| |DC 1 Global    | |        | |DC N Global    | |
+| |Policy Engine  | |        | |Policy Engine  | |
+| +---------------+ |        | +---------------+ |
+|                   |        |                   |
+| +---------------+ |        | +---------------+ |
+| |Whatever       | |        | |Whatever       | |
+| |Subsystems     | |        | |Subsystems     | |
+| |               | |        | |               | |
+| |Local Policy   | |        | |Local Policy   | |
+| |Engines        | |        | |Engines        | |
+| +---------------+ |        | +---------------+ |
++-------------------+        +-------------------+
+]]></artwork>
+</figure>
+
+<section anchor="Hierarchical_orchestration" title="Mapping to Hierarchical Resource Orchestration">
+
+<t>If the MANO framework is extended to multi layer hierarchies <xref
+target="I-D.unify-nfvrg-recursive-programming"/>, then a potential
+mapping of the hierarchical policies to the MANO architecture is shown
+in <xref target="fig:hierarchical:mano:policies"/></t>
+
+<figure anchor="fig:hierarchical:mano:policies" align="center" 
+	title="Policies in a Hierarchical Orchestration View"> 
+  <artwork align="center"><![CDATA[
+                                          T1 T2...Tn
+                                        +--|--|----|---+
+                                        |              |
+                                        |Service       |
+                              Domain 4  |  Orchestrator|
+************************************    +--+-----------+
+                         T1 T2...Tn *******|******************
+ Tenant Policies ->    +--|--|----|---+    |
+                       | NFVO:        |    |
+                       | Service      |    |    <-Domain Policies
+                       | Lifecycle    |    |
+                       | Orchestrator |    |
+                       +-------+------+   /
+Domain 3                       |         /
+********************         +-+---------+--+   <-Tenant Policies
+                    *        |NFVO:         |
+******************   *       |Rersource     |   <-Domain Policies
+  T1 T2...Tn      *   *      |Orchestration |
++--|--|----|---+   *   *     +--+---+-------+
+| NFVO:        |    *   ********|***|************************
+| Service      |     *         /    |
+| Lifecycle    |    /---------/     |           <-Domain Policies
+| Orchestrator |   /   *            |
++---------+----+  |    *            |
+          |       |    *            |
+       +--+-------+---+*            |           <-Tenant Policies
+       |              |*            |
+       |NFVO:         |*            |           <-Domain Policies
+       |Rersource     |*            |
+       |Orchestration |*            |
+       +------+-------+*            |
+             /|\       *   *********|**********
+       +------+-------+*   * +------+-------+ * <-Tenant Policies
+    +--|a/VIM:        |*   * |VIM:          | *
+ +--|b |Resource      |*   * |Resource      | * <-Domain Policies
+ |c |  |Orchestrationn|*   * |Orchestration | *
+ |  |  +--------------+*   * +--------------+ *
+Domain 1               *   * Domain 2         *
+************************   *                  *
+]]></artwork>
+</figure>
+
+</section>
+
+
+</section>
+
+<section anchor="sec:pub_sub_bus" title="Policy Pub/Sub Bus">
+  <t>In <xref target="I-D.irtf-nfvrg-nfv-policy-arch"/> the authors argued for the need of policy
+  subsystems to subscribe to policy updates at a higher policy
+  level. A policy publication/subscription (pub/sub) bus would be
+  required as shown in <xref target='fig:policy_pub_sub_bus' />.
+</t>
+
+<figure anchor='fig:policy_pub_sub_bus'
+	title='A Policy Pub/Sub Bus'>
+<artwork><![CDATA[
++----------------------------------------------------------------+
+|        +----------------------------------------------+        |
+|        |             Global Policy Engine             |        |
+|        +----------------------------------------------+        |
+|                                                                |
+|        +----------------------------------------------+        |
+|        |                Global Policies               |        |
+|        +----------------------------------------------+        |
++----------------------------------------------------------------+
+                                 ^
+                                 |
+                                 |
+Policy Pub/Sub Bus               V
+  --------------------------------------------------------------
+       ^                ^                ^                ^
+       |                |                |                |
+       |                |                |                |
+       V                V                V                V
++-------------+  +-------------+  +-------------+  +-------------+
+|Compute      |  |Network      |  |Storage      |  |Whatever     |
+|Subsystem    |  |Subsystem    |  |Subsystem    |  |Subsystem    |
+|             |  |             |  |             |  |             |
+|Local Policy |  |Local Policy |  |Local Policy |  |Local Policy |
+|Engine       |  |Engine       |  |Engine       |  |Engine       |
+|             |  |             |  |             |  |             |
+|Local        |  |Local        |  |Local        |  |Local        |
+|Policies:    |  |Policies     |  |Policies     |  |Policies     |
+| P0, P1,     |  | P0, P1,     |  | P0, P1,     |  | P0, P1,     |
+|             |  |             |  |             |  |             |
++-------------+  +-------------+  +-------------+  +-------------+
+]]></artwork>
+</figure>
+
+<t>
+A higher tier policy engine would communicate policies to lower tier
+policy engines using a policy pub/sub bus.  Conversely, lower tier
+policy engines would communicate their configured policies and
+services to the higher tier policy engine using the same policy
+pub/sub bus. Such communications require each policy pub/sub bus to
+have a pre-defined/pre-configured policy "name space". For example, a
+pub/sub bus could define services using the name space "Platinum",
+"Gold", and "Silver". A policy could then be communicated over that
+pub/sub bus specifying a Silver service requirement.
+</t>
+
+<t>
+In a hierarchical policy framework, a policy engine may use more than
+one policy pub/sub bus, e.g., a policy pub/sub bus named "H" to
+communicate with a higher tier policy engine and a policy pub/sub bus
+named "L" to communicate with lower tier policy engines. As the name
+spaces of policy pub/sub buses H and L may be different, the policy
+engine would translate policies defined using the policy pub/sub bus H
+name space to policies defined using the policy pub/sub bus L name
+space, and vice-versa.</t>
+
+<section anchor="sec:pub_sub_in_hierach" title="Pub/sub bus in the hierarchical framework">
+
+<t>
+<xref target="fig:pub_sub_in_hierch"/> shows the Pub/sub bus in the hierarchical
+MANO framework. Policy communications would employ a policy
+pub/sub bus between the subsystems' policy engines in the policy
+hierarchy (see <xref target="sec:hierarc_framework"/>). The global NFVO subsystem should have
+visibility into the policies defined locally at each PoP to be able
+to detect any potential global policy conflicts, e.g., a local PoP
+administrator could add a local policy that violates or conflicts
+with a global policy. In addition, the global NFVO subsystem would
+benefit from being able to import the currently configured services
+at each PoP. The global NFVO would use such information to monitor
+global policy conformance and also to facilitate detection of policy
+violations when new global policies are created, e.g., a global level
+administrator is about to add a new global policy that, if committed,
+would make certain already configured services a violation of the
+policy. The publication of subsystem service tables for consumption
+by a global policy engine is a concept used in the Congress <xref target='OPENSTACK-CONGRESS' /> 
+OpenStack  <xref target='OPENSTACK' /> project.
+</t>
+
+<figure anchor="fig:pub_sub_in_hierch"
+	title="Pub/sub bus in the hierarchical MANO framework">
+<artwork align="center"><![CDATA[
+          Customers
+              |
+              V
+       +--------------+
+       |  Web Portal  |
+       +--------------+
+              ^
+              |
+              V
+     +-----------------+        +-----------------+
+     | OSS/BSS         |        | Global NFVO     |
+     | +-------------+ |        | +-------------+ |
+     | |OSS/BSS      | | Policy | |NFVO         | |
+     | |Policy Engine|<---------->|Policy Engine| |
+     | +-------------+ |        | +-------------+ |
+     |                 |        |        ^        |
+     |         ...     |        |        | ...    |
+     +-----------------+        +--------|--------+
+                                         |
+       Policy (Pub/Sub Bus)              V
+      -------------------------------------------
+        ^                  ^                  ^
+        |                  |                  |
++-------|-------+  +-------|-------+  +-------|-------+
+| PoP A |       |  | PoP B |       |  | PoP C |       |
+|       V       |  |       V       |  |       V       |
+| +-----------+ |  | +-----------+ |  | +-----------+ |
+| |Local NFVO | |  | |Local NFVO | |  | |Local NFVO | |
+| | +-------+ | |  | | +-------+ | |  | | +-------+ | |
+| | |Policy | | |  | | |Policy | | |  | | |Policy | | |
+| | |Engine | | |  | | |Engine | | |  | | |Engine | | |
+| | +-------+ | |  | | +-------+ | |  | | +-------+ | |
+| +-----------+ |  | +-----------+ |  | +-----------+ |
+|       ^       |  |       ^       |  |       ^       |
+|       |       |  |       |       |  |       |       |
+|       V       |  |       V       |  |       V       |
+| +-----------+ |  | +-----------+ |  | +-----------+ |
+| |VIM        | |  | |VIM        | |  | |VIM        | |
+| | +-------+ | |  | | +-------+ | |  | | +-------+ | |
+| | |Policy | | |  | | |Policy | | |  | | |Policy | | |
+| | |Engine | | |  | | |Engine | | |  | | |Engine | | |
+| | +-------+ | |  | | +-------+ | |  | | +-------+ | |
+| +-----------+ |  | +-----------+ |  | +-----------+ |
+|         ...   |  |        ...    |  |         ...   |
++---------------+  +---------------+  +---------------+
+]]></artwork>
+</figure>
+
+</section>
+</section>
+
+<section anchor="sec:policy_intent" title="Policy Intent Statement versus Subsystem Actions and Configurations">
+		<t>Content to be merged</t>
+<figure anchor='fig_example_translations_policy_actions'
+	title='Example of Subsystem Translations of Policy Actions'>
+<artwork>
++----------------------------------------------------------------+
+|   Policy: "a given customer must be given Platinum treatment"  |
++----------------------------------------------------------------+
+       ^                ^                ^                ^
+       |                |                |                |
+       V                V                V                V
++-------------+  +-------------+  +-------------+  +-------------+
+|Compute      |  |Network      |  |Storage      |  |Whatever     |
+|Subsystem    |  |Subsystem    |  |Subsystem    |  |Subsystem    |
+|             |  |             |  |             |  |             |
+|Policy       |  |Policy       |  |Policy       |  |Policy       |
+|translation: |  |translation: |  |translation: |  |translation: |
+|             |  |             |  |             |  |             |
+|Install      |  |Give customer|  |Give customer|  | ...         |
+|customer VMs |  |the best QoS,|  |the fastest  |  |             |
+|on servers   |  |which        |  |SSD storage. |  |             |
+|with 3GHz    |  |translates   |  |             |  |             |
+|16-core Xeon |  |here to set  |  |             |  |             |
+|processors,  |  |DHCP to xx,  |  |             |  |             |
+|and etc.     |  |and etc.     |  |             |  |             |
++-------------+  +-------------+  +-------------+  +-------------+
+</artwork>
+</figure>
+	</section>
+
+	<section anchor="sec:static_dynamic" title="Static vs Dynamic vs Autonomic Policies">
+		<t>Content to be merged</t>
+	</section>
+
+	<section anchor="sec:conflicts_resolution" title="Policy Conflicts and Resolution">
+		<t>Content to be merged</t>
+	</section>
+
+	<section anchor="sec:soft_hard" title="Soft vs Hard Policy Constraints">
+		<t>Content to be merged</t>
+	</section>
+
+	<section anchor="SFC_architecture_considerations" title="Service Function Chaining Architectural Considerations">
+		<t>tbd</t>
+	</section>
+
+</section>
+
+<section title="Resource Management in Service Chaining">
+  <t>Content to be merged from <xref
+  target="I-D.irtf-nfvrg-resource-management-service-chain"/>.</t>
+
+</section>
+
+<section anchor="examples" title="Policy-Based Resource Management Examples">
+	<section anchor="multipoint_ether" title="Policy-Based Multipoint Ethernet Service">
+		<t>Content to be merged</t>
+	</section>
+
+	<section anchor="policy_based_placement" title="Policy-Based NFV Placement">
+		<t>Content to be merged</t>
+	</section>
+
+	<section anchor="policy_based_service_func_chain" title="Policy-Based Service Function Chaining">
+		<t>Content to be merged</t>
+	</section>
+</section>
+
+<section anchor="Implementations" title="Implementation Examples">
+<t>tbd</t>
+</section>
+
+<section anchor="Gaps" title="Gaps and Open Questions">
+<t>tbd</t>
+</section>
+
+<section anchor="Conclusions" title="Conclusions">
+<t>tbd</t>
+	<section anchor="Impact" title="Relation to other IETF/IRTF activities">
+	<t>tbd</t>
+	</section>
+</section>
+
+<section anchor="Acknowledgements" title="Acknowledgements">
+
+<t>The research leading to some of the results described in this document
+has received funding from the
+European Union Seventh Framework Programme (FP7/2007-2013) under grant
+agreement no. 619609 - the UNIFY project. The views expressed here are
+those of the authors only. The European Commission is not liable for
+any use that may be made of the information in this document.</t>
+
+</section>
+
+<section title="Contributors">
+<t>This document is the result of merging multiple drafts.  This
+section acknowledges those who provided important ideas and text into
+this document.
+<list style="symbols">
+  <t>Z. Qiang (Ericsson), M. Kind (DT-AG) from <xref target="I-D.unify-nfvrg-recursive-programming"/></t>
+  <t>R. Krishnan (Dell), D. Lopez (Telefonica) and S. Wright (AT&amp;T)
+  from <xref target="I-D.irtf-nfvrg-nfv-policy-arch"/></t>
+  <t>S. Lee (ETRI), S. Pack (KU), M-K. Shin (ETRI) and E. Paik (KT)
+  from <xref target="I-D.irtf-nfvrg-resource-management-service-chain"/></t>
+</list></t>
+
+</section>
+
+<section anchor="IANA" title="IANA Considerations">
+<t>tbd</t>
+</section>
+
+<section anchor="Security" title="Security Considerations">
+<t>tbd</t>
+</section>
+
+</middle>
+  <back>
+    <references title="Normative References">
+      <!--
+	  [13] Moore, B., et al., "Information Model for Describing Network
+	  Device QoS Datapath Mechanisms," RFC 3670, January 2004
+      -->
+      <?rfc include='reference.RFC.3670'?>
+      <?rfc include='reference.RFC.2119'?>
+      
+      <!--
+	  [14] Moore, B. et al., "Policy Core Information Model - Version 1
+	  Specification," RFC 3060, February 2001
+      -->
+      <?rfc include='reference.RFC.3060'?>
+      <!-- <?rfc include='reference.RFC.3070'?> -->
+
+      <!--
+	  [23] Westerinen, A. et al., "Terminology for Policy-Based
+	  Management," RFC 3198, November 2001
+      -->
+      <?rfc include='reference.RFC.3198'?>
+
+    </references>
+
+    <references title="Informative References">
+      &I-D.irtf-nfvrg-nfv-policy-arch;
+      <?rfc include='reference.I-D.unify-nfvrg-recursive-programming'?>
+      <?rfc include='reference.I-D.irtf-nfvrg-resource-management-service-chain'?>
+
+
+<!--
+ [1] Ceri, S. et al., "What you always wanted to know about Datalog
+ (and never dared to ask)," IEEE Transactions on Knowledge and Data
+ Engineering, (Volume: 1, Issue: 1), August 2002
+-->
+     <reference anchor="CERI-DATALOG">
+       <front>
+         <title>What you always wanted to know about Datalog (and never dared to ask</title>
+         <author initials="S." surname="Ceri">
+           <organization></organization>
+         </author>
+         <author>
+           <organization>others</organization>
+         </author>
+         <date month='August' year="2002" />
+       </front>
+       <seriesInfo name='IEEE Transactions on Knowledge and Data Engineering,' value='(Volume: 1, Issue: 1)'/>
+     </reference> 
+
+<!--
+[2] "Common Information Model (CIM)," DTMF,
+http://www.dmtf.org/standards/cim
+-->
+     <!-- <reference anchor="CIM"
+       	     	target="http://www.dmtf.org/standards/cim">
+       		<front>
+       			<title>Common Information Model (CIM)</title>
+       			<author>
+       				<organization>DTMF</organization>
+       			</author>
+       			 <date year="" />
+       		</front>
+       </reference>  -->
+
+<!--
+   [3] ETSI GS NFV 001 v1.1.1 (2013-10): "Network Function
+   Virtualisation (NFV); Use Cases," http://www.etsi.org/deliver/
+   etsi_gs/NFV/001_099/001/01.01.01_60/gs_NFV001v010101p.pdf
+-->
+     <!-- <reference anchor="ETSI-GS-NFV-001"
+       	     	target="http://www.etsi.org/deliver/etsi_gs/NFV/001_099/001/01.01.01_60/gs_NFV001v010101p.pdf">
+       		<front>
+       			<title>Network Function Virtualisation (NFV); Use Cases</title>
+       			<author>
+       				<organization>ETSI GS NFV 001 v1.1.1 (2013-10)</organization>
+       			</author>
+       			 <date year="" />
+       		</front>
+       </reference>  -->
+
+
+<!--
+   [4] ETSI GS NFV 002 v1.2.1 (2014-12): "Network Function
+   Virtualisation (NFV); Architectural Framework,"
+   http://www.etsi.org/deliver/etsi_gs/NFV/001_099/002/
+   01.02.01_60/gs_nfv002v010201p.pdf
+-->
+     <!-- <reference anchor="ETSI-GS-NFV-002"
+       	     	target="http://www.etsi.org/deliver/etsi_gs/NFV/001_099/002/01.02.01_60/gs_nfv002v010201p.pdf">
+       		<front>
+       			<title>Network Function Virtualisation (NFV); Architectural Framework</title>
+       			<author>
+       				<organization>ETSI GS NFV 002 v1.2.1 (2014-12)</organization>
+       			</author>
+       			 <date year="" />
+       		</front>
+       </reference>  -->
+
+<!--
+   [5] ETSI GS NFV 004 v1.1.1 (2013-10): "Network Function
+   Virtualisation (NFV); Virtualization Requirements,"
+   http://www.etsi.org/deliver/etsi_gs/NFV/001_099/004/01.01.01_60/
+   gs_NFV004v010101p.pdf
+-->
+     <!-- <reference anchor="ETSI-GS-NFV-004"
+       	     	target="http://www.etsi.org/deliver/etsi_gs/NFV/001_099/004/01.01.01_60/gs_NFV004v010101p.pdf">
+       		<front>
+       			<title>Network Function Virtualisation (NFV); Virtualization Requirements</title>
+       			<author>
+       				<organization>ETSI GS NFV 004 v1.1.1 (2013-10)</organization>
+       			</author>
+       			 <date year="" />
+       		</front>
+       </reference>  -->
+
+<!--
+   [6] ETSI GS NFV-INF 001 v.1.1.1 (2015-01): "Network Function
+   Virtualisation (NFV); Infrastructure Overview,"
+   http://www.etsi.org/deliver/etsi_gs/NFV-
+   INF/001_099/001/01.01.01_60/gs_NFV-INF001v010101p.pdf
+-->
+
+     <!-- <reference anchor="ETSI-GS-NFV-INF-001"
+       		target="http://www.etsi.org/deliver/etsi_gs/NFV-INF/001_099/001/01.01.01_60/gs_NFV-INF001v010101p.pdf">
+       		<front>
+       			<title>Network Function Virtualisation (NFV); Infrastructure Overview</title>
+       			<author>
+       				<organization>ETSI GS NFV-INF 001 v.1.1.1 (2015-01)</organization>
+       			</author>
+       			 <date year="" />
+       		</front>
+       </reference>  -->
+
+<!--
+    [7] ETSI NFV White Paper: "Network Functions Virtualisation, An
+   Introduction, Benefits, Enablers, Challenges, &amp; Call for Action,"
+   http://portal.etsi.org/NFV/NFV_White_Paper.pdf
+-->
+	<reference anchor="ETSI-NFV-WHITE-PAPER"
+		target="http://portal.etsi.org/NFV/NFV_White_Paper.pdf">
+		<front>
+			<title>Network Functions Virtualisation, An Introduction, Benefits, Enablers, Challenges, &amp; Call for Action</title>
+			<author>
+				<organization>ETSI NFV White Paper</organization>
+			</author>
+			 <date year="" />
+		</front>
+	</reference> 
+<!--
+   [8] Figueira, N. and Krishnan, R., "SDN Multi-Domain Orchestration
+   and Control: Challenges and Innovative Future Directions," CNC VIII:
+   Cloud and Multimedia Applications, IEEE International Conference on
+   Computing (ICNC), February 2015
+-->
+     <reference anchor="SDN-MULTI-DOMAIN">
+       <front>
+         <title>SDN Multi-Domain Orchestration and Control: Challenges and Innovative Future Directions</title>
+         <author initials="N." surname="Figueira">
+           <organization></organization>
+         </author>
+         <author initials="R." surname="Krishnan">
+           <organization></organization>
+         </author>
+         <date month='February' year="2015" />
+       </front>
+       <seriesInfo name='IEEE International Conference on Computing' value='(ICNC)'/>
+     </reference> 
+
+<!--
+   [9] Grit, L. et al., "Virtual Machine Hosting for Networked Clusters:
+   Building the Foundations for "Autonomic" Orchestration,"
+   Virtualization Technology in Distributed Computing, 2006. VTDC 2006.
+-->
+     <reference anchor="VM-HOSTING-NET-CLUSTER">
+       <front>
+         <title>Virtual Machine Hosting for Networked Clusters: Building the Foundations for "Autonomic" Orchestration</title>
+         <author initials="L." surname="Grit">
+           <organization></organization>
+         </author>
+         <author>
+           <organization>others</organization>
+         </author>
+         <date year="2006" />
+       </front>
+       <seriesInfo name='Virtualization Technology in Distributed Computing' value='(VTDC)'/>
+     </reference> 
+
+<!--
+   [10] Krishnan, R. et al., "Helping Telcos go Green and save OpEx via
+   Policy", Talk and demo at the Vancouver OpenStack summit. Video Link:
+   https://www.openstack.org/summit/vancouver-2015/summit-videos/
+   presentation/helping-telcos-go-green-and-save-opex-via-policy
+-->
+     <!-- <reference anchor="HELPING-TELCOS-GO-GREEN"
+       	     	target="https://www.openstack.org/summit/vancouver-2015/summit-videos/presentation/helping-telcos-go-green-and-save-opex-via-policy">
+         <front>
+           <title>Helping Telcos Go Green and Save OpEx via Policy</title>
+           <author initials="R." surname="Krishnan">
+             <organization></organization>
+           </author>
+           <author>
+             <organization>others</organization>
+           </author>
+           <date year="2015" />
+         </front>
+         <seriesInfo name='Talk and demo at the Vancouver OpenStack summit' value='(Video link below)'/>
+       </reference>  -->
+
+<!--
+   [11] Krishnan, R. et al., "NFVIaaS Architectural Framework for Policy
+   Based Resource Placement and Scheduling,"
+   https://datatracker.ietf.org/doc/draft-krishnan-nfvrg-policy-based-
+   rm-nfviaas/
+-->
+     <!-- <reference anchor="NFVIAAS-RESOURCE-PLACEMENT"
+       	     	target="https://datatracker.ietf.org/doc/draft-krishnan-nfvrg-policy-based-rm-nfviaas/">
+         <front>
+           <title>NFVIaaS Architectural Framework for Policy Based Resource Placement and Scheduling</title>
+           <author initials="R." surname="Krishnan">
+             <organization></organization>
+           </author>
+           <author>
+             <organization>others</organization>
+           </author>
+           <date year="" />
+         </front>
+       </reference>  -->
+
+<!--
+   [12] Lee, S. et al., "Resource Management in Service Chaining",
+   https://datatracker.ietf.org/doc/draft-irtf-nfvrg-resource-
+   management-service-chain/
+-->
+     <reference anchor="RESOURCE-MGMT-SERVICE-CHAIN"
+	     	target="https://datatracker.ietf.org/doc/draft-irtf-nfvrg-resource-management-service-chain/">
+       <front>
+         <title>Resource Management in Service Chaining</title>
+         <author initials="S." surname="Lee">
+           <organization></organization>
+         </author>
+         <author>
+           <organization>others</organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [15] "OpenDaylight Group Based Policy,"
+   https://wiki.opendaylight.org/view/Project_Proposals:Group_Based_
+   Policy_Plugin
+-->
+     <reference anchor="ODL-GB-POLICY"
+	     	target="https://wiki.opendaylight.org/view/Project_Proposals:Group_Based_Policy_Plugin">
+       <front>
+         <title>OpenDaylight Group Based Policy</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [16] "OpenDaylight Network Intent Composition Project,"
+   https://wiki.opendaylight.org/index.php?title=Network_Intent_
+   Composition:Main#Friday_8AM_Pacific_Time
+-->
+    <reference anchor="ODL-NIC-PROJECT"
+	     	target="https://wiki.opendaylight.org/index.php?title=Network_Intent_Composition:Main#Friday_8AM_Pacific_Time">
+       <front>
+         <title>OpenDaylight Network Intent Composition Project</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+     [17] "OpenDaylight SDN Controller," http://www.opendaylight.org/
+-->
+    <reference anchor="ODL-SDN-CONTROLLER"
+	     	target="http://www.opendaylight.org/">
+       <front>
+         <title>OpenDaylight SDN Controller</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [18] "OpenStack," http://www.openstack.org/
+-->
+    <reference anchor="OPENSTACK"
+	     	target="http://www.openstack.org/">
+       <front>
+         <title>OpenStack</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [19] "OpenStack Congress," https://wiki.openstack.org/wiki/Congress
+-->
+    <reference anchor="OPENSTACK-CONGRESS"
+	     	target="https://wiki.openstack.org/wiki/Congress">
+       <front>
+         <title>OpenStack Congress</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [20] "OpenStack Neat," http://openstack-neat.org/
+-->
+    <reference anchor="OPENSTACK-NEAT"
+	     	target="http://openstack-neat.org/">
+       <front>
+         <title>OpenStack Neat</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [21] "OpenStack Neutron," https://wiki.openstack.org/wiki/Neutron
+-->
+    <reference anchor="OPENSTACK-NEUTRON"
+	     	target="https://wiki.openstack.org/wiki/Neutron">
+       <front>
+         <title>OpenStack Neutron</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!--
+   [22] "Policy Framework Working Group," IETF,
+   http://www.ietf.org/wg/concluded/policy.html
+-->
+    <reference anchor="POLICY-FRAMEWORK-WG"
+	     	target="http://www.ietf.org/wg/concluded/policy.html">
+       <front>
+         <title>Policy Framework Working Group (IETF)</title>
+         <author>
+           <organization></organization>
+         </author>
+         <date year="" />
+       </front>
+     </reference> 
+
+<!-- FROM SERVICE CHAIN DRAFT
+  Must check for duplicated references with above refs -->
+    <!--  <reference anchor="ETSI-NFV-WHITE">
+        <front>
+          <title>NFV Whitepaper 2</title>
+          <author>
+            <organization>ETSI</organization>
+            </author>
+          <date month="October" year="2013" />
+        </front>
+      </reference> -->
+    
+    <!-- <reference anchor="ETSI-NFV-ARCH">
+        <front>
+          <title>ETSI NFV Architectural Framework v1.1.1</title>
+          <author>
+            <organization>ETSI</organization>
+            </author>
+          <date month="October" year="2013" />
+        </front>
+      </reference> -->
+
+	<reference anchor="ETSI-NFV-MANO">
+      <front>
+        <title>Network Function Virtualization (NFV) Management and Orchestration V0.6.3</title>
+        <author>
+          <organization>ETSI</organization>
+          </author>
+        <date month="October" year="2014" />
+      </front>
+    </reference>
+
+	<reference anchor="ETSI-NFV-TERM">
+      <front>
+        <title>NFV Terminology for Main Concepts in NFV</title>
+        <author>
+          <organization>ETSI</organization>
+          </author>
+        <date month="October" year="2013" />
+      </front>
+    </reference>
+
+<!-- <reference anchor="ETSI-NFV-PER001">
+        <front>
+          <title>Network Function Virtualization: Performance and Portability Best Practices v1.1.1</title>
+          <author>
+            <organization>ETSI</organization>
+            </author>
+          <date month="June" year="2014" />
+        </front>
+      </reference> -->
+
+	<!-- <?rfc include='reference.I-D.liu-bmwg-virtual-network-benchmark'?> -->
+	
+	<!-- <?rfc include='reference.I-D.ietf-bmwg-virtual-net'?> -->
+	
+	<!-- <?rfc include='reference.I-D.ietf-sfc-architecture'?> -->
+	
+	<!-- <?rfc include='reference.I-D.ietf-sfc-control-plane'?> -->
+	
+	<?rfc include='reference.I-D.irtf-nfvrg-nfv-policy-arch'?>
+
+	<!-- <?rfc include='reference.I-D.lee-sfc-dynamic-instantiation'?> -->
+	
+	<!-- <?rfc include='reference.I-D.ietf-sfc-oam-framework'?> -->
+	
+	<!-- <?rfc include='reference.I-D.krishnan-sfc-oam-req-framework'?> -->
+	
+	<!-- <?rfc include='reference.I-D.meng-sfc-chain-redundancy'?> -->
+
+	<!-- <?rfc include='reference.I-D.dunbar-sfc-fun-instances-restoration'?> -->
+
+    </references>
+
+  </back>
+</rfc>
